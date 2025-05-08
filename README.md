@@ -17,15 +17,15 @@ You can use these CRDs without needing the Operator Lifecycle Manager (OLM) by a
 
 ```bash
 # Replace X.Y.Z with the Infinispan version you want to use
-export INFINISPAN_VERSION=X.Y.Z
+export INFINISPAN_OPERATOR_VERSION=X.Y.Z
 
 # Apply the CRDs
-kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_VERSION}/backups.infinispan.org-v1.yml
-kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_VERSION}/batches.infinispan.org-v1.yml
-kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_VERSION}/caches.infinispan.org-v1.yml
-kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_VERSION}/infinispans.infinispan.org-v1.yml
-kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_VERSION}/restores.infinispan.org-v1.yml
-kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_VERSION}/kubernetes.yml
+kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_OPERATOR_VERSION}/backups.infinispan.org-v1.yml
+kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_OPERATOR_VERSION}/batches.infinispan.org-v1.yml
+kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_OPERATOR_VERSION}/caches.infinispan.org-v1.yml
+kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_OPERATOR_VERSION}/infinispans.infinispan.org-v1.yml
+kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_OPERATOR_VERSION}/restores.infinispan.org-v1.yml
+kubectl apply -f https://raw.githubusercontent.com/infinispan/infinispan-k8s-resources/${INFINISPAN_OPERATOR_VERSION}/kubernetes.yml
 ```
 
 ## Manually Generating CRDs
