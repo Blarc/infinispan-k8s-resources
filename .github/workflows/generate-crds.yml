@@ -1,0 +1,116 @@
+name: Generate and Tag CRDs
+
+on:
+  repository_dispatch:
+    types: [infinispan-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Infinispan version'
+        required: true
+        default: ''
+  schedule:
+    # Run once a day to check for new releases
+    - cron: '0 0 * * *'
+
+jobs:
+  generate-crds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+
+      - name: Get Infinispan version
+        id: get-version
+        #language=bash
+        run: |
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "VERSION=${{ github.event.client_payload.version }}" >> $GITHUB_ENV
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            # For scheduled runs, get the latest release from the Infinispan repository
+            LATEST_VERSION=$(curl -s https://api.github.com/repos/infinispan/infinispan/releases/latest | jq -r .tag_name | sed 's/^v//')
+            echo "Latest Infinispan version: $LATEST_VERSION"
+
+            # Check if we already have this version tagged
+            git fetch --tags
+            if git tag -l | grep -q "^v$LATEST_VERSION$"; then
+              echo "Version $LATEST_VERSION already processed. Skipping."
+              exit 0
+            else
+              echo "Processing new version: $LATEST_VERSION"
+              echo "VERSION=$LATEST_VERSION" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Clone Infinispan Operator repository
+        #language=bash
+        run: |
+          git clone https://github.com/infinispan/infinispan-operator.git
+          cd infinispan-operator
+          # If there's a tag matching the Infinispan version, use it
+          if git tag -l | grep -q "^$VERSION$"; then
+            git checkout $VERSION
+          else
+            # Otherwise use the latest commit on main
+            git checkout main
+          fi
+
+      - name: Generate CRDs
+        #language=bash
+        run: |
+          cd infinispan-operator
+          make manifests && make kustomize
+          cd config/manager && kustomize edit set image operator="quay.io/infinispan/operator:$VERSION" && cd ../..
+          cd config/default && kustomize edit set namespace "infinispan-operator" && cd ../..
+          mkdir ../kubernetes 
+          kustomize build config/default > ../kubernetes/full.yaml
+          cd ../kubernetes
+          # CRDs
+          yq 'select(.kind == "CustomResourceDefinition")' full.yaml | yq -s '.metadata.name + "-" + (.apiVersion | split("/") | .[1]) + ".yml"' -
+          # Operator resources
+          yq 'select(.kind != "CustomResourceDefinition")' full.yaml > kubernetes.yml
+          rm full.yaml
+          ls -la
+      - name: Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubernetes
+          path: kubernetes
+
+      - name: Commit and tag CRDs
+        #language=bash
+        run: |
+          cd $GITHUB_WORKSPACE
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
+          # Check if there are any changes
+          if [ -d "kubernetes" ] && [ "$(ls -A kubernetes)" ]; then
+            # Add all CRDs
+            git add kubernetes/
+
+            # Check if there are changes to commit
+            if git diff --staged --quiet; then
+              echo "No changes to commit"
+            else
+              # Commit changes
+              git commit -m "Automatic update to $VERSION"
+
+              # Push changes
+              # git push origin main
+            fi
+
+            # Create tag (even if no changes, to mark this version as processed)
+            git tag -a "$VERSION" -m "Automatic update to $VERSION"
+
+            # Push tag
+            git push origin "$VERSION"
+          else
+            echo "No CRDs were generated or copied. Check the build process."
+            exit 1
+          fi
