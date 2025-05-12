@@ -33,12 +33,12 @@ jobs:
             echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
           else
             # For scheduled runs, get the latest release from the Infinispan repository
-            LATEST_VERSION=$(curl -s https://api.github.com/repos/infinispan/infinispan/releases/latest | jq -r .tag_name | sed 's/^v//')
+            LATEST_VERSION=$(curl -s https://api.github.com/repos/infinispan/infinispan/tags | jq -r .[0].name | sed 's/^v//')
             echo "Latest Infinispan version: $LATEST_VERSION"
 
             # Check if we already have this version tagged
             git fetch --tags
-            if git tag -l | grep -q "^v$LATEST_VERSION$"; then
+            if git tag -l | grep -q "$LATEST_VERSION$"; then
               echo "Version $LATEST_VERSION already processed. Skipping."
               exit 0
             else
